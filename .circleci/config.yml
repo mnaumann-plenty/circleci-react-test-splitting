@@ -16,6 +16,8 @@ jobs:
     # A list of available CircleCI Docker Convenience Images are available here: https://circleci.com/developer/images/image/cimg/node
     docker:
       - image: cimg/node:16.10
+    # do the parallel thing
+    parallelism: 5
     # Then run your tests!
     # CircleCI will report the results back to your VCS provider.
     steps:
@@ -26,9 +28,19 @@ jobs:
       - node/install-packages:
           # If you are using yarn, change the line below from "npm" to "yarn"
           pkg-manager: yarn
+      # place to save results and timing data
+      - run: mkdir ~/junit
+      # runs tests across parallel images, split by timing
       - run:
-          name: Run tests please
-          command: yarn test
+          name: Test application
+          command: |
+            TEST=$(circleci tests glob "src/__tests__/*.js" | circleci tests split --split-by=timings)
+            yarn test $TEST
+      - run:
+          command: cp junit.xml ~/junit/
+          when: always
+      - store_test_results:
+          path: ~/junit
 
 workflows:
   # Below is the definition of your workflow.
